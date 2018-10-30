@@ -13,7 +13,7 @@ var connection = mysql.createConnection({
     database: 'bamazondb'
 });
 
-//Establish Connection
+//Connection
 connection.connect(function (err) {
     if (err) throw err;
     console.log('connected as id: ' + connection.threadId)
@@ -30,7 +30,7 @@ function showProducts() {
         console.log('=================================================');
 
         for (i = 0; i < res.length; i++) {
-            console.log('Item ID:' + res[i].id + ' Product_name: ' + res[i].Product_name + ' Price: ' + '$' + res[i].Price + '(Stock_quanity: ' + res[i].Stock_quanity + ')')
+            console.log('Item ID:' + res[i].id + ' Product_name: ' + res[i].Product_name + ' Price: ' + '$' + res[i].Price + '(Stock_quantity: ' + res[i].Stock_quantity + ')')
         }
         console.log('=================================================');
         placeOrder();
@@ -40,8 +40,9 @@ function showProducts() {
 //Prompts the user to place an order, fulfills the order, and then calls the new order function
 function placeOrder() {
     inquirer.prompt([{
-        name: 'selectId',
+        type: 'text',
         message: 'Please enter the ID of the product you wish to purchase',
+        name: 'selectId',
         validate: function (value) {
             var valid = value.match(/^[0-9]+$/)
             if (valid) {
@@ -50,8 +51,9 @@ function placeOrder() {
             return 'Please enter a valid Product ID'
         }
     }, {
-        name: 'selectQuantity',
+        type: 'text',
         message: 'How many of this product would you like to order?',
+        name: 'selectQuantity',
         validate: function (value) {
             var valid = value.match(/^[0-9]+$/)
             if (valid) {
@@ -61,20 +63,22 @@ function placeOrder() {
         }
     }]).then(function (answer) {
         connection.query('SELECT * FROM products WHERE id = ?', [answer.selectId], function (err, res) {
-            if (answer.selectQuanity > res[0].Stock_quanity) {
+            if (answer.selectQuantity > res[0].Stock_quantity) {
                 console.log('Insufficient Quantity');
                 console.log('This order cannot be completed');
                 console.log('');
                 newOrder();
             } else {
-                amountOwed = res[0].Price * answer.selectQuanity;
+                amountOwed = parseInt(res[0].Price) * parseInt(answer.selectQuantity);
                 currentDepartment = res[0].Department_name;
                 console.log('Thanks for your order');
                 console.log('You owe $' + amountOwed);
                 console.log('This order will ship ASAP');
+                //console.log(answer.selectQuantity);
+                //console.log(res[0].Price);
                 //update products table
                 connection.query('UPDATE products SET ? Where ?', [{
-                    Stock_quanity: res[0].Stock_quanity - answer.selectQuanity
+                    Stock_quanity: res[0].Stock_quantity - answer.selectQuantity
                 }, {
                     id: answer.selectId
                 }], function (err, res) {});
@@ -103,7 +107,7 @@ function newOrder() {
     })
 };
 
-//functions to push the sales to the executive table
+
 function logSaleToDepartment() {
     connection.query('SELECT * FROM departments WHERE Department_name = ?', [currentDepartment], function (err, res) {
         updateSales = res[0].TotalSales + amountOwed;
@@ -118,6 +122,5 @@ function updateDepartmentTable() {
         Department_name: currentDepartment
     }], function (err, res) {});
 };
-//Call the original function (all other functions are called within this function)
-//======================================================================
+
 showProducts();
